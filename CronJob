@@ -1,0 +1,47 @@
+go to cronjob.yaml (/root/kubernetes-training/04-controllers)
+Open the file and change the 1st line to (apiVersion: batch/v1beta1).
+>>Run this file
+
+[root@ip-172-31-30-102 04-controllers]# kubectl apply -f cronjob.yaml -n kk
+cronjob.batch/batch-job-every-fifteen-minutes created
+
+
+>>Find out what is the command to "get" the running jobs.
+Observe and if possible, paste the results from your practicals.
+
+[root@ip-172-31-30-102 04-controllers]# kubectl get cronjobs batch-job-every-fifteen-minutes -n kk
+NAME                              SCHEDULE             SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+batch-job-every-fifteen-minutes   0,15,30,45 * * * *   False     0        4m1s            30m
+
+
+
+[root@ip-172-31-30-102 04-controllers]# kubectl get jobs -n kk
+NAME                                         COMPLETIONS   DURATION   AGE
+batch-job-every-fifteen-minutes-1652613300   1/1           2m5s       19m
+batch-job-every-fifteen-minutes-1652614200   1/1           2m4s       4m2s
+
+
+
+[root@ip-172-31-30-102 04-controllers]# kubectl get pods -n kk
+NAME                                               READY   STATUS      RESTARTS   AGE
+batch-job-every-fifteen-minutes-1652613300-cx9nw   0/1     Completed   0          18m
+batch-job-every-fifteen-minutes-1652614200-v6ph9   0/1     Completed   0          3m20s
+
+
+
+>>Also identify how you would "permanently arrest" the jobs from running.
+
+[root@ip-172-31-30-102 04-controllers]# kubectl delete  cronjobs batch-job-every-fifteen-minutes -n kk
+cronjob.batch "batch-job-every-fifteen-minutes" deleted
+
+[root@ip-172-31-30-102 04-controllers]# kubectl get cronjobs batch-job-every-fifteen-minutes -n kk
+Error from server (NotFound): cronjobs.batch "batch-job-every-fifteen-minutes" not found
+
+[root@ip-172-31-30-102 04-controllers]# kubectl get jobs -n kk
+No resources found in kk namespace.
+
+
+
+>>What is the change from normal Jobs (jobs v/s cronJobs) - Your observation in one sentence.
+
+CronJobs are periodic-batch-job which runs at configured time period,whereas normal jobs executes as soon as we trigger command.
