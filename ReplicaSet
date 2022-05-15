@@ -1,0 +1,128 @@
+Compare the kubia-rc.yaml (/root/kubernetes-training/04-controllers) and the kubia-replicaset.yaml (/root/kubernetes-training/05-services).
+1)>>>>>What are the differences file-wise?
+
+         RC ---
+          selector:
+             app: kubia
+         RS---
+           selector:
+             matchLabels:   
+               app: kubia
+               
+               In replicaset static object matchLabels present.
+2)>>>>>>Run the kubia-replicaset.yaml .
+
+[root@ip-172-31-30-102 05-services]# kubectl apply -f  kubia-replicaset.yaml  -n kk
+replicaset.apps/kubia created
+
+4)>>>>>Identify what commands can be run after "kubectl apply...."
+
+[root@ip-172-31-30-102 05-services]# kubectl get rs -n kk
+NAME    DESIRED   CURRENT   READY   AGE
+kubia   3         3         3       13s
+
+[root@ip-172-31-30-102 05-services]# kubectl get pods -n kk --show-labels
+NAME           READY   STATUS    RESTARTS   AGE     LABELS
+kubia-q6nx4    1/1     Running   0          27s     app=kubia
+kubia-qcgfp    1/1     Running   0          27s     app=kubia
+kubia-zf7jm    1/1     Running   0          27s     app=kubia
+
+4)>>>>>Make a service over these pods (kubia-replicaset) and see if the service picks up the web-service within the pod ("You have hit....." message)
+
+[root@ip-172-31-30-102 05-services]# cat kubia-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubia3
+spec:
+  clusterIP: 10.99.10.98
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: kubia
+    
+ [root@ip-172-31-30-102 05-services]# kubectl apply -f  kubia-svc.yaml  -n kk
+service/kubia3 created
+
+[root@ip-172-31-30-102 05-services]# kubectl get svc -n kk
+NAME     TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)   AGE
+kubia3   ClusterIP   10.99.10.98   <none>        80/TCP    16m
+
+
+[root@ip-172-31-30-102 05-services]# kubectl get pods -n kk -o wide
+NAME           READY   STATUS    RESTARTS   AGE     IP                NODE                                               NOMINATED NODE   READINESS GATES
+kubia-q6nx4    1/1     Running   0          25m     192.168.213.101   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+kubia-qcgfp    1/1     Running   0          25m     192.168.213.102   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+kubia-zf7jm    1/1     Running   0          25m     192.168.213.100   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+
+[root@ip-172-31-30-102 05-services]# curl 10.99.10.98:80
+You've hit kubia-q6nx4
+[root@ip-172-31-30-102 05-services]# curl 10.99.10.98:80
+You've hit kubia-zf7jm
+[root@ip-172-31-30-102 05-services]# curl 10.99.10.98:80
+You've hit kubia-qcgfp
+
+5)>>>>Negative Testing : change the labels of the pod and see if the service is still applied on those pods
+
+ vi kubia-replicaset.yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: kubia
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: kubia123
+  template:
+    metadata:
+      labels:
+        app: kubia123
+        
+   
+    
+ [root@ip-172-31-30-102 05-services]# kubectl apply -f kubia-replicaset.yaml -n kk
+replicaset.apps/kubia created
+
+[root@ip-172-31-30-102 05-services]# kubectl get pods -n kk --show-labels
+NAME           READY   STATUS    RESTARTS   AGE     LABELS
+kubia-f7chk    1/1     Running   0          24s     app=kubia123
+kubia-qc2tn    1/1     Running   0          24s     app=kubia123
+kubia-xp9jf    1/1     Running   0          24s     app=kubia123
+
+ -------------
+ 
+[root@ip-172-31-30-102 05-services]# cat kubia-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubia3
+spec:
+  clusterIP: 10.99.10.98
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: kubia
+    
+[root@ip-172-31-30-102 05-services]# kubectl apply -f  kubia-svc.yaml  -n kk
+service/kubia3 created
+
+[root@ip-172-31-30-102 05-services]# kubectl get svc -n kk
+NAME     TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)   AGE
+kubia3   ClusterIP   10.99.10.98   <none>        80/TCP    10s
+
+[root@ip-172-31-30-102 05-services]# curl 10.99.10.98:80
+curl: (7) Failed to connect to 10.99.10.98 port 80 after 0 ms: Connection refused   
+
+As POD lebels got changed to kubia123,services won't be applied...As shown it is throwing error.
+
+    
+
+
+
+
+             
+      
+      
