@@ -15,7 +15,12 @@ Compare the kubia-rc.yaml (/root/kubernetes-training/04-controllers) and the kub
 [root@ip-172-31-30-102 05-services]# kubectl apply -f  kubia-replicaset.yaml  -n kk
 replicaset.apps/kubia created
 
-4)>>>>>Identify what commands can be run after "kubectl apply...."
+[root@ip-172-31-30-102 05-services]# kubectl get rs -n kk
+NAME    DESIRED   CURRENT   READY   AGE
+kubia   3         3         3       13s
+
+
+3)>>>>>Identify what commands can be run after "kubectl apply...."
 
 [root@ip-172-31-30-102 05-services]# kubectl get rs -n kk
 NAME    DESIRED   CURRENT   READY   AGE
@@ -52,16 +57,22 @@ kubia3   ClusterIP   10.99.10.98   <none>        80/TCP    16m
 
 [root@ip-172-31-30-102 05-services]# kubectl get pods -n kk -o wide
 NAME           READY   STATUS    RESTARTS   AGE     IP                NODE                                               NOMINATED NODE   READINESS GATES
-kubia-q6nx4    1/1     Running   0          25m     192.168.213.101   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
-kubia-qcgfp    1/1     Running   0          25m     192.168.213.102   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
-kubia-zf7jm    1/1     Running   0          25m     192.168.213.100   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+kubia4-br7kd   1/1     Running   0          54s     192.168.213.114   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+kubia4-f2cmg   1/1     Running   0          54s     192.168.213.116   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+kubia4-zn95p   1/1     Running   0          54s     192.168.213.115   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+
+[root@ip-172-31-30-102 05-services]# kubectl get ep -n kk
+NAME     ENDPOINTS                                                        AGE
+kubia3   192.168.213.114:8080,192.168.213.115:8080,192.168.213.116:8080   23h
+
 
 [root@ip-172-31-30-102 05-services]# curl 10.99.10.98:80
-You've hit kubia-q6nx4
+You've hit kubia4-zn95p
 [root@ip-172-31-30-102 05-services]# curl 10.99.10.98:80
-You've hit kubia-zf7jm
+You've hit kubia4-f2cmg
 [root@ip-172-31-30-102 05-services]# curl 10.99.10.98:80
-You've hit kubia-qcgfp
+You've hit kubia4-br7kd
+
 
 5)>>>>Negative Testing : change the labels of the pod and see if the service is still applied on those pods
 
