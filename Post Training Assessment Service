@@ -1,0 +1,44 @@
+Application is created as replicaset and it listening on 8000
+
+[root@ip-172-31-30-102 05-services]# kubectl apply -f kubia-replicaset_8000.yaml -n kk
+replicaset.apps/kubia4 created
+
+[root@ip-172-31-30-102 05-services]# kubectl get pods  -o wide -n kk
+NAME           READY   STATUS    RESTARTS   AGE   IP                NODE                                               NOMINATED NODE   READINESS GATES
+kubia4-2d5xz   1/1     Running   0          10m   192.168.213.126   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+kubia4-fgvfj   1/1     Running   0          10m   192.168.213.91    ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+kubia4-ljlzm   1/1     Running   0          10m   192.168.213.120   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+[root@ip-172-31-30-102 05-services]# curl 192.168.213.91:8000
+You've hit kubia4-fgvfj
+[root@ip-172-31-30-102 05-services]# kubectl get rs -n kk
+NAME     DESIRED   CURRENT   READY   AGE
+kubia4   3         3         3       12m
+
+Now we applied a service on all pods as well as Nodeports to access it from outside.
+
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 8000
+    nodePort: 30125
+
+[root@ip-172-31-30-102 05-services]# kubectl get svc -n kk
+NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+kubia-nodeport   NodePort    10.98.218.119   <none>        80:30125/TCP   118s
+kubia3           ClusterIP   10.99.10.99     <none>        80/TCP         4m50s
+
+--Somehow RS got deleted and pods got terminated.
+
+[root@ip-172-31-30-102 ~]# kubectl delete rs kubia4 -n kk
+replicaset.apps "kubia4" deleted
+[root@ip-172-31-30-102 ~]# kubectl get pods -n kk
+NAME           READY   STATUS        RESTARTS   AGE
+kubia4-blczm   1/1     Terminating   0          84s
+kubia4-nndtd   1/1     Terminating   0          84s
+kubia4-sncjb   1/1     Terminating   0          84s
+
+Now Nodepoint no longer access those application.
+
+http://54.169.99.72:30125/
+54.169.99.72 didn’t send any data.
