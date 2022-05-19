@@ -1,0 +1,44 @@
+>>Deploying application  using deployment controller with one replica
+
+[root@ip-172-31-30-102 09-deployments]# kubectl apply -f  kubia-deployment-and-service-v1.yaml -n kk
+deployment.apps/kubia123 created
+service/kubia created
+
+[root@ip-172-31-30-102 09-deployments]# kubectl get deploy -n kk
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+kubia123   1/1     1            1           10s
+
+
+[root@ip-172-31-30-102 09-deployments]# kubectl get pods -n kk -o wide
+NAME                        READY   STATUS    RESTARTS   AGE   IP               NODE                                               NOMINATED NODE   READINESS GATES
+kubia123-59d857b444-gdks2   1/1     Running   0          64s   192.168.213.77   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+
+>>Image version and downtime as zero.
+
+[root@ip-172-31-30-102 09-deployments]# kubectl describe deploy kubia123 -n kk
+Name:                   kubia123
+Namespace:              kk
+CreationTimestamp:      Thu, 19 May 2022 16:45:07 +0000
+Labels:                 <none>
+Annotations:            deployment.kubernetes.io/revision: 1
+Selector:               app=kubia
+Replicas:               1 desired | 1 updated | 1 total | 1 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+
+>>Updating Image version as v2.
+
+[root@ip-172-31-30-102 09-deployments]# kubectl set image deployment kubia123 nodejs=luksa/kubia:v2 -n kk
+deployment.apps/kubia123 image updated
+
+[root@ip-172-31-30-102 09-deployments]# kubectl describe deploy kubia123 -n kk
+Name:                   kubia123
+Namespace:              kk
+CreationTimestamp:      Thu, 19 May 2022 16:45:07 +0000
+Labels:                 <none>
+Annotations:            deployment.kubernetes.io/revision: 2
+
+[root@ip-172-31-30-102 09-deployments]# kubectl get rs -n kk -o wide
+NAME                  DESIRED   CURRENT   READY   AGE     CONTAINERS   IMAGES           SELECTOR
+kubia123-59d857b444   0         0         0       12m     nodejs       luksa/kubia:v1   app=kubia,pod-template-hash=59d857b444
+kubia123-7d5c456ffc   1         1         1       7m41s   nodejs       luksa/kubia:v2   app=kubia,pod-template-hash=7d5c456ffc
