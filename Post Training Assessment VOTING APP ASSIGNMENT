@@ -1,0 +1,106 @@
+[root@ip-172-31-30-102 k8s-specifications]#  kubectl apply -f . -n kk
+
+[root@ip-172-31-30-102 k8s-specifications]# kubectl get pods -n kk -o wide
+NAME                      READY   STATUS    RESTARTS   AGE     IP                NODE                                               NOMINATED NODE   READINESS GATES
+db-b54cd94f4-chwpg        1/1     Running   0          6m20s   192.168.213.85    ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+redis-868d64d78-2bbkw     1/1     Running   0          6m20s   192.168.213.84    ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+result-5d57b59f4b-bnv7x   1/1     Running   0          6m20s   192.168.213.83    ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+vote-94849dc97-mqqc6      1/1     Running   0          6m20s   192.168.213.124   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+worker-dd46d7584-rz9dz    1/1     Running   0          6m20s   192.168.213.96    ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+
+[root@ip-172-31-30-102 k8s-specifications]# kubectl get svc -n kk
+NAME     TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+db       ClusterIP   10.109.193.63    <none>        5432/TCP         34s
+redis    ClusterIP   10.102.172.247   <none>        6379/TCP         34s
+result   NodePort    10.98.152.40     <none>        5001:31001/TCP   34s
+vote     NodePort    10.106.125.250   <none>        5000:31000/TCP   34s
+
+>>Voting app got deployed and Nodeport assigned Vote-31000 & result-31001.
+
+>>Voting and result count is happening properly.
+[root@ip-172-31-30-102 k8s-specifications]# kubectl logs  worker-dd46d7584-rz9dz  -n kk
+Waiting for db
+Waiting for db
+Connected to db
+Found redis at 10.102.172.247
+Connecting to redis
+Processing vote for 'a' by 'f44d3dce26ebf451'
+Processing vote for 'b' by 'f44d3dce26ebf451'
+Processing vote for 'a' by 'f44d3dce26ebf451'
+Processing vote for 'a' by 'f44d3dce26ebf451'
+Processing vote for 'b' by 'f44d3dce26ebf451'
+Processing vote for 'a' by '3a6da5391a86d633'
+
+>>Now deleting voting Pod.
+
+[root@ip-172-31-30-102 k8s-specifications]# kubectl delete pods vote-94849dc97-mqqc6 -n kk
+pod "vote-94849dc97-mqqc6" deleted
+
+Voting app spin up with new POD IP due to RS functionality.
+
+[root@ip-172-31-30-102 k8s-specifications]# kubectl get pods -n kk -o wide
+NAME                      READY   STATUS    RESTARTS   AGE   IP               NODE                                               NOMINATED NODE   READINESS GATES
+vote-94849dc97-tpzmr      1/1     Running   0          75s   192.168.213.92   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+
+Voting is conducted uninterrupted.
+
+>>Deleting  worker pod.
+
+[root@ip-172-31-30-102 k8s-specifications]# kubectl delete pods worker-dd46d7584-rz9dz -n kk
+pod "worker-dd46d7584-rz9dz" deleted
+
+Worker app spin up with new POD IP due to RS functionality.
+
+[root@ip-172-31-30-102 k8s-specifications]# kubectl get pods -n kk -o wide
+NAME                      READY   STATUS    RESTARTS   AGE     IP                NODE                                               NOMINATED NODE   READINESS GATES
+worker-dd46d7584-7d5hd    1/1     Running   0          46s     192.168.213.121   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+
+Voting is conducted uninterrupted.
+
+>>Deleting  db pod.
+[root@ip-172-31-30-102 k8s-specifications]# kubectl delete pods db-b54cd94f4-chwpg -n kk
+pod "db-b54cd94f4-chwpg" deleted
+
+DB app spin up with new POD IP due to RS functionality.
+
+[root@ip-172-31-30-102 ~]#  kubectl get pods -n kk -o wide
+NAME                      READY   STATUS    RESTARTS   AGE     IP                NODE                                               NOMINATED NODE   READINESS GATES
+db-b54cd94f4-8grht        1/1     Running   0          4m51s   192.168.213.119   ip-172-31-25-170.ap-southeast-1.compute.internal   <none>           <none>
+
+But voting functionality interrupted completely, result app getting hanged with old values.
+
+>>Observation at result POD log...
+
+[root@ip-172-31-30-102 ~]# kubectl  logs result-5d57b59f4b-bnv7x -n kk
+Sat, 21 May 2022 09:36:09 GMT body-parser deprecated bodyParser: use individual json/urlencoded middlewares at server.js:67:9
+Sat, 21 May 2022 09:36:09 GMT body-parser deprecated undefined extended: provide extended option at ../node_modules/body-parser/index.js:105:29
+App running on port 80
+Waiting for db
+Connected to db
+Error performing query: Error: This socket has been ended by the other party
+
+Socket connection has been disconnected at DB app due to DB app deletion.
+>>
+Now we restart Result app to make connection up.
+
+[root@ip-172-31-30-102 ~]#  kubectl delete  pods result-5d57b59f4b-bnv7x  -n kk
+pod "result-5d57b59f4b-bnv7x" deleted
+
+
+[root@ip-172-31-30-102 ~]# kubectl  logs result-5d57b59f4b-t7qfm -n kk
+Sat, 21 May 2022 10:25:42 GMT body-parser deprecated bodyParser: use individual json/urlencoded middlewares at server.js:67:9
+Sat, 21 May 2022 10:25:42 GMT body-parser deprecated undefined extended: provide extended option at ../node_modules/body-parser/index.js:105:29
+App running on port 80
+Connected to db
+
+Voting app functionality working fine now.
+
+[root@ip-172-31-30-102 ~]# kubectl  logs worker-dd46d7584-7d5hd -n kk
+Connected to db
+Found redis at 10.102.172.247
+Connecting to redis
+Processing vote for 'b' by '3a6da5391a86d633'
+Processing vote for 'b' by 'f44d3dce26ebf451'
+Processing vote for 'a' by 'f44d3dce26ebf451'
+Processing vote for 'a' by '3a6da5391a86d633'
+
